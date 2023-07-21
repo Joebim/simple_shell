@@ -9,9 +9,9 @@
 int main(int argc, char *argv[], char *envp[])
 {
 	char buf[] = "cisfun$ ", *prompt = NULL, *command = NULL;
-	size_t promptlen = 0;
+	size_t input_len = 0;
 	ssize_t len;
-	char **tokens, *delim = " ";
+	char **tok, *delim = " ";
 	int i;
 
 	(void) argc;
@@ -21,26 +21,26 @@ int main(int argc, char *argv[], char *envp[])
 		if (isatty(STDIN_FILENO) == 1)
 			write(STDOUT_FILENO, buf, sizeof(buf));
 		fflush(stdin);
-		len = _getline(&prompt, &promptlen, stdin);
+		len = _getline(&prompt, &input_len, stdin);
 		if (len == -1)
-			_pexit(prompt);
+			exit_shell(prompt);
 		if (len > 1 && prompt != NULL)
 		{
-			if (_isWhiteSpace(prompt) == 1)
-				_pexit(prompt);
+			if (is_white_space(prompt) == 1)
+				exit_shell(prompt);
 			if (strcmp(prompt, "exit\n") == 0)
-				_pexit(prompt);
+				exit_shell(prompt);
 			command = strtok(prompt, "\n");
 			while (command != NULL)
 			{
-				tokens = _tokenize(command, delim);
-				_execute(tokens[0], tokens, envp);
-				for (i = 0; tokens[i] != NULL; i++)
-					free(tokens[i]);
-				free(tokens);
+				tok = get_token(command, delim);
+				_exec(tok[0], tok, envp);
+				for (i = 0; tok[i] != NULL; i++)
+					free(tok[i]);
+				free(tok);
 				command = strtok(NULL, "\n");
 			}
-			tokens = NULL;
+			tok = NULL;
 			free(prompt);
 			prompt = NULL;
 		}
@@ -49,24 +49,24 @@ int main(int argc, char *argv[], char *envp[])
 }
 
 /**
- * _pexit - exit the shell
+ * exit_shell - exit the shell
  * @prompt: pointer to the prompt
  */
-void _pexit(char *prompt)
+void exit_shell(char *prompt)
 {
 	free(prompt);
 	exit(EXIT_SUCCESS);
 }
 
 /**
- * _tokenize - breaks strings to tokens
+ * get_token - breaks strings to tok
  * @prompt: pointer to string
  * @delim: string delimiter
  * Return: pointer to array of strings
  */
-char **_tokenize(char *prompt, char *delim)
+char **get_token(char *prompt, char *delim)
 {
-	char **tokens;
+	char **tok;
 	int count = 0, i = 0;
 	char *temp = strdup(prompt);
 	char *t = strtok(temp, delim);
@@ -78,26 +78,26 @@ char **_tokenize(char *prompt, char *delim)
 	}
 	free(temp);
 
-	tokens = malloc((count + 1) * sizeof(char *));
+	tok = malloc((count + 1) * sizeof(char *));
 	t = strtok(prompt, delim);
 	while (t != NULL)
 	{
-		tokens[i] = strdup(t);
+		tok[i] = strdup(t);
 		i++;
 		t = strtok(NULL, delim);
 	}
-	tokens[i] = NULL;
-	return (tokens);
+	tok[i] = NULL;
+	return (tok);
 }
 
 /**
- * _execute - executes shell commands
+ * _exec - executes shell commands
  * @prompt: pointer to string command
  * @argv: argument vector
  * @envp: environment variables
  * Return: void
  */
-void _execute(char *prompt, char *argv[], char *envp[])
+void _exec(char *prompt, char *argv[], char *envp[])
 {
 	int status;
 	pid_t pid;
@@ -105,14 +105,14 @@ void _execute(char *prompt, char *argv[], char *envp[])
 
 	if (strcmp(prompt, "env") == 0)
 	{
-		_printenv();
+		get_env();
 		exit(EXIT_SUCCESS);
 	}
 	pid = fork();
 
 	if (pid == 0)
 	{
-		inputCommand = get_path(prompt);
+		inputCommand = path_get(prompt);
 		if (inputCommand == NULL)
 			exit(EXIT_FAILURE);
 		execve(inputCommand, argv, envp);
@@ -139,46 +139,46 @@ void _execute(char *prompt, char *argv[], char *envp[])
 }
 
 /**
- * get_path - gets or fetches the PATH of a file
+ * path_get - gets or fetches the PATH of a file
  * @command: the PATH to be found
  * Return: an array of string.
  */
-char *get_path(char *command)
+char *path_get(char *command)
 {
-	char *path_copy;
-	int commandlength;
+	char *path_cpy;
+	int cmd_length;
 	char *path_token;
-	int dir_length;
-	char *file_path;
+	int dir_len;
+	char *fpath;
 	struct stat buffer;
 	char *path = getenv("PATH");
 
 	if (path)
 	{
-		path_copy = strdup(path);
-		commandlength = strlen(command);
-		path_token = strtok(path_copy, ":");
+		path_cpy = strdup(path);
+		cmd_length = strlen(command);
+		path_token = strtok(path_cpy, ":");
 
 		while (path_token != NULL)
 		{
-			dir_length = strlen(path_token);
-			file_path = malloc(commandlength + dir_length + 2);
-			strcpy(file_path, path_token);
-			strcat(file_path, "/");
-			strcat(file_path, command);
-			strcat(file_path, "\0");
-			if (stat(file_path, &buffer) == 0)
+			dir_len = strlen(path_token);
+			fpath = malloc(cmd_length + dir_len + 2);
+			strcpy(fpath, path_token);
+			strcat(fpath, "/");
+			strcat(fpath, command);
+			strcat(fpath, "\0");
+			if (stat(fpath, &buffer) == 0)
 			{
-				free(path_copy);
-				return (file_path);
+				free(path_cpy);
+				return (fpath);
 			}
 			else
 			{
-				free(file_path);
+				free(fpath);
 				path_token = strtok(NULL, ":");
 			}
 		}
-		free(path_copy);
+		free(path_cpy);
 		if (stat(command, &buffer) == 0)
 			return (command);
 		return (command);

@@ -18,30 +18,14 @@
 
 extern char **environ;
 
-#define MAX_PATH_LEN 256
-#define MAX_ARGS 10
-
 /* Function Prototype */
-void print_error(const char *command);
-char *read_input(size_t *bufsize);
-int parse_input(char *input, char *args[MAX_ARGS]);
-void fork_and_execute(char *args[MAX_ARGS], char *envp[]);
-int custom_strcmp(const char *s1, const char *s2);
-void *custom_memcpy(void *dest, const void *src, size_t n);
-bool cmd_exists(char *command, char *envp[]);
-char *strings_concat(const char *str1, const char *str2);
-char *custom_strcpy(char *dest, const char *src);
-char *custom_strcat(char *dest, const char *src);
-size_t custom_strlen(const char *str);
-int custom_strncmp(const char *s1, const char *s2, size_t n);
-
-void _execute(char *prompt, char *argv[], char *envp[]);
-void _printenv(void);
+void _exec(char *prompt, char *argv[], char *envp[]);
+void get_env(void);
 ssize_t _getline(char **lineptr, size_t *n, FILE *stream);
-int _isWhiteSpace(const char *prompt);
-void _cd(char *args[]);
-void _pexit(char *prompt);
-char **_tokenize(char *prompt, char *delim);
-char *get_path(char *command);
+int is_white_space(const char *prompt);
+void nav_dir(char *args[]);
+void exit_shell(char *prompt);
+char **get_token(char *prompt, char *delim);
+char *path_get(char *command);
 
 #endif

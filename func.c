@@ -49,10 +49,10 @@ ssize_t _getline(char **lineptr, size_t *n, FILE *stream)
 }
 
 /**
- * _printenv - print the environment variables
+ * get_env - print the environment variables
  * Return: void
  */
-void _printenv(void)
+void get_env(void)
 {
 	int i;
 
@@ -64,11 +64,11 @@ void _printenv(void)
 }
 
 /**
- * _isWhiteSpace - check for whitespace prompt
+ * is_white_space - check for whitespace prompt
  * @prompt: string prompt
  * Return: returns 1 if all is whitespace
  */
-int _isWhiteSpace(const char *prompt)
+int is_white_space(const char *prompt)
 {
 	while (*prompt)
 	{
