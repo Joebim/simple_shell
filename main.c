@@ -47,7 +47,6 @@ int main(int argc, char *argv[], char *envp[])
 	}
 	return (0);
 }
-
 /**
  * exit_shell - exit the shell
  * @prompt: pointer to the prompt
@@ -57,7 +56,6 @@ void exit_shell(char *prompt)
 	free(prompt);
 	exit(EXIT_SUCCESS);
 }
-
 /**
  * get_token - breaks strings to tok
  * @prompt: pointer to string
@@ -77,7 +75,6 @@ char **get_token(char *prompt, char *delim)
 		t = strtok(NULL, delim);
 	}
 	free(temp);
-
 	tok = malloc((count + 1) * sizeof(char *));
 	t = strtok(prompt, delim);
 	while (t != NULL)
@@ -89,7 +86,6 @@ char **get_token(char *prompt, char *delim)
 	tok[i] = NULL;
 	return (tok);
 }
-
 /**
  * _exec - executes shell commands
  * @prompt: pointer to string command
@@ -99,59 +95,32 @@ char **get_token(char *prompt, char *delim)
  */
 void _exec(char *prompt, char *argv[], char *envp[])
 {
-	int status;
-	pid_t pid;
-	char *inputCommand;
-
 	if (strcmp(prompt, "env") == 0)
 	{
 		get_env();
-		return;
-	}
-
-	if (strcmp(prompt, "exit") == 0)
-	{
-		if (argv[1] != NULL)
-		{
-			int exitStatus = atoi(argv[1]);
-			exit(exitStatus);
-		}
-		else
-		{
-			exit(EXIT_SUCCESS);
-		}
-	}
-
-	pid = fork();
-
-	if (pid == 0)
-	{
-		inputCommand = path_get(prompt);
-		if (inputCommand == NULL)
-			exit(EXIT_FAILURE);
-		execve(inputCommand, argv, envp);
-		perror(inputCommand);
 		exit(EXIT_SUCCESS);
 	}
-	else
+	else if (strcmp(prompt, "exit") == 0)
 	{
-		wait(&status);
-		if (WIFEXITED(status))
-		{
-			int exitStatus = WEXITSTATUS(status);
+		exit_check(argv);
+	} else
+	{
+		char **tokens;
+		char *delim = " ";
+		char *command = strtok(prompt, "\n");
+		int i;
 
-			if (exitStatus != 0)
-				exit(exitStatus);
-		}
-		else if (WIFSIGNALED(status))
+		while (command != NULL)
 		{
-			int signalNumber = WTERMSIG(status);
-
-			exit(128 + signalNumber);
+			tokens = get_token(command, delim);
+			execute_command(tokens[0], tokens, envp);
+			for (i = 0; tokens[i] != NULL; i++)
+				free(tokens[i]);
+			free(tokens);
+			command = strtok(NULL, "\n");
 		}
 	}
 }
-
 /**
  * path_get - gets or fetches the PATH of a file
  * @command: the PATH to be found

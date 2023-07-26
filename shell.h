@@ -19,6 +19,7 @@
 extern char **environ;
 
 /* Function Prototype */
+void execute_command(char *command, char *argv[], char *envp[]);
 void _exec(char *prompt, char *argv[], char *envp[]);
 void get_env(void);
 ssize_t _getline(char **lineptr, size_t *n, FILE *stream);
@@ -27,5 +28,5 @@ void nav_dir(char *args[]);
 void exit_shell(char *prompt);
 char **get_token(char *prompt, char *delim);
 char *path_get(char *command);
-
+int exit_check(char *argv[]);
 #endif
