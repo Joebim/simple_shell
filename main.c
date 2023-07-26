@@ -106,8 +106,22 @@ void _exec(char *prompt, char *argv[], char *envp[])
 	if (strcmp(prompt, "env") == 0)
 	{
 		get_env();
-		exit(EXIT_SUCCESS);
+		return;
 	}
+
+	if (strcmp(prompt, "exit") == 0)
+	{
+		if (argv[1] != NULL)
+		{
+			int exitStatus = atoi(argv[1]);
+			exit(exitStatus);
+		}
+		else
+		{
+			exit(EXIT_SUCCESS);
+		}
+	}
+
 	pid = fork();
 
 	if (pid == 0)
