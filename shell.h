@@ -29,4 +29,8 @@ void exit_shell(char *prompt);
 char **get_token(char *prompt, char *delim);
 char *path_get(char *command);
 int exit_check(char *argv[]);
+void execute_command_with_flags(char *command, char *flags[], char *envp[]);
+void parse_flags(char *argv[], char **command, char ***flags);
+int prepare_flags(char *command, char *flags[], char **command_with_flags[]);
+
 #endif
