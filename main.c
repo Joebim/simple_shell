@@ -1,170 +1,44 @@
 #include "shell.h"
-/**
- * main - shell entry function
- * @argc: argument count
- * @argv: argument vector
- * @envp: emvironment variables
- * Return: 0 for SUCCESS
- */
-int main(int argc, char *argv[], char *envp[])
-{
-	char buf[] = "cisfun$ ", *prompt = NULL, *command = NULL;
-	size_t input_len = 0;
-	ssize_t len;
-	char **tok, *delim = " ";
-	int i;
 
-	(void) argc;
-	(void) argv;
-	while (1)
+/**
+ * main - entry point
+ * @ac: arg count
+ * @av: arg vector
+ *
+ * Return: 0 on success, 1 on error
+ */
+int main(int ac, char **av)
+{
+	num_t num[] = { INFO_INIT };
+	int fd = 2;
+
+	asm ("mov %1, %0\n\t"
+			"add $3, %0"
+			: "=r" (fd)
+			: "r" (fd));
+
+	if (ac == 2)
 	{
-		if (isatty(STDIN_FILENO) == 1)
-			write(STDOUT_FILENO, buf, sizeof(buf));
-		fflush(stdin);
-		len = _getline(&prompt, &input_len, stdin);
-		if (len == -1)
-			exit_shell(prompt);
-		if (len > 1 && prompt != NULL)
+		fd = open(av[1], O_RDONLY);
+		if (fd == -1)
 		{
-			if (is_white_space(prompt) == 1)
-				exit_shell(prompt);
-			if (strcmp(prompt, "exit\n") == 0)
-				exit_shell(prompt);
-			command = strtok(prompt, "\n");
-			while (command != NULL)
+			if (errno == EACCES)
+				exit(126);
+			if (errno == ENOENT)
 			{
-				tok = get_token(command, delim);
-				_exec(tok[0], tok, envp);
-				for (i = 0; tok[i] != NULL; i++)
-					free(tok[i]);
-				free(tok);
-				command = strtok(NULL, "\n");
+				char_put(av[0]);
+				char_put(": 0: Can't open ");
+				char_put(av[1]);
+				char_print('\n');
+				char_print(BUF_FLUSH);
+				exit(127);
 			}
-			tok = NULL;
-			free(prompt);
-			prompt = NULL;
+			return (EXIT_FAILURE);
 		}
+		num->readfd = fd;
 	}
-	return (0);
-}
-/**
- * exit_shell - exit the shell
- * @prompt: pointer to the prompt
- */
-void exit_shell(char *prompt)
-{
-	free(prompt);
-	exit(EXIT_SUCCESS);
-}
-/**
- * get_token - breaks strings to tok
- * @prompt: pointer to string
- * @delim: string delimiter
- * Return: pointer to array of strings
- */
-char **get_token(char *prompt, char *delim)
-{
-	char **tok;
-	int count = 0, i = 0;
-	char *temp = strdup(prompt);
-	char *t = strtok(temp, delim);
-
-	while (t != NULL)
-	{
-		count++;
-		t = strtok(NULL, delim);
-	}
-	free(temp);
-	tok = malloc((count + 1) * sizeof(char *));
-	t = strtok(prompt, delim);
-	while (t != NULL)
-	{
-		tok[i] = strdup(t);
-		i++;
-		t = strtok(NULL, delim);
-	}
-	tok[i] = NULL;
-	return (tok);
-}
-/**
- * _exec - executes shell commands
- * @prompt: pointer to string command
- * @argv: argument vector
- * @envp: environment variables
- * Return: void
- */
-void _exec(char *prompt, char *argv[], char *envp[])
-{
-	if (strcmp(prompt, "env") == 0)
-	{
-		get_env();
-		exit(EXIT_SUCCESS);
-	}
-	else if (strcmp(prompt, "exit") == 0)
-	{
-		exit_check(argv);
-	} else
-	{
-		char **tokens;
-		char *delim = " ";
-		char *command = strtok(prompt, "\n");
-		int i;
-
-		while (command != NULL)
-		{
-			tokens = get_token(command, delim);
-			execute_command(tokens[0], tokens, envp);
-			for (i = 0; tokens[i] != NULL; i++)
-				free(tokens[i]);
-			free(tokens);
-			command = strtok(NULL, "\n");
-		}
-	}
-}
-/**
- * path_get - gets or fetches the PATH of a file
- * @command: the PATH to be found
- * Return: an array of string.
- */
-char *path_get(char *command)
-{
-	char *path_cpy;
-	int cmd_length;
-	char *path_token;
-	int dir_len;
-	char *fpath;
-	struct stat buffer;
-	char *path = getenv("PATH");
-
-	if (path)
-	{
-		path_cpy = strdup(path);
-		cmd_length = strlen(command);
-		path_token = strtok(path_cpy, ":");
-
-		while (path_token != NULL)
-		{
-			dir_len = strlen(path_token);
-			fpath = malloc(cmd_length + dir_len + 2);
-			strcpy(fpath, path_token);
-			strcat(fpath, "/");
-			strcat(fpath, command);
-			strcat(fpath, "\0");
-			if (stat(fpath, &buffer) == 0)
-			{
-				free(path_cpy);
-				return (fpath);
-			}
-			else
-			{
-				free(fpath);
-				path_token = strtok(NULL, ":");
-			}
-		}
-		free(path_cpy);
-		if (stat(command, &buffer) == 0)
-			return (command);
-		return (command);
-	}
-	return (command);
+	env_store(num);
+	read_history(num);
+	hsh(num, av);
+	return (EXIT_SUCCESS);
 }

@@ -1,80 +1,116 @@
 #include "shell.h"
+
 /**
- * _getline - reads a line from a stream and stores it in a buffer
- * @lineptr: pointer to the buffer
- * @n: pointer to the size of the buffer
- * @stream: stream to read from
- * Return: number of characters read, or -1 on error or end-of-file
+ * hist - displays the history list, one command by line, preceded
+ *              with line numbers, starting at 0.
+ * @num: Structure containing potential arguments. Used to maintain
+ *        constant function prototype.
+ *  Return: Always 0
  */
-ssize_t _getline(char **lineptr, size_t *n, FILE *stream)
+int hist(num_t *num)
 {
-	char buffer[BUFFER_SIZE];
-	size_t total = 0;
-	size_t len;
-
-	if (lineptr == NULL || n == NULL || stream == NULL)
-		return (-1);
-
-	if (*lineptr == NULL)
-	{
-		*n = BUFFER_SIZE;
-		*lineptr = malloc(*n);
-		if (*lineptr == NULL)
-			return (-1);
-	}
-
-	while (fgets(buffer, BUFFER_SIZE, stream))
-	{
-		len = strlen(buffer);
-		if (total + len + 1 > *n)
-		{
-			char *tmp;
-			*n = total + len + 1;
-			tmp = realloc(*lineptr, *n);
-			if (tmp == NULL)
-				return (-1);
-			*lineptr = tmp;
-		}
-		strcpy(*lineptr + total, buffer);
-		total += len;
-		if ((*lineptr)[total - 1] == '\n')
-			break;
-	}
-
-	if (total == 0)
-		return (-1);
-
-	(*lineptr)[total] = '\0';
-	return (total);
+	int_print(num->history);
+	return (0);
 }
 
 /**
- * get_env - print the environment variables
- * Return: void
+ * undo_user - sets alias to string
+ * @num: parameter struct
+ * @str: the string alias
+ *
+ * Return: Always 0 on success, 1 on error
  */
-void get_env(void)
+int undo_user(num_t *num, char *str)
 {
-	int i;
+	char *p, c;
+	int ret;
 
-	for (i = 0; environ[i] != NULL; i++)
-	{
-		write(STDOUT_FILENO, environ[i], strlen(environ[i]));
-		write(STDOUT_FILENO, "\n", 1);
-	}
+	p = _strchr(str, '=');
+	if (!p)
+		return (1);
+	c = *p;
+	*p = 0;
+	ret = node_del(&(num->alias),
+		find_index_n(num->alias, node_sw(num->alias, str, -1)));
+	*p = c;
+	return (ret);
 }
 
 /**
- * is_white_space - check for whitespace prompt
- * @prompt: string prompt
- * Return: returns 1 if all is whitespace
+ * make_user - sets alias to string
+ * @num: parameter struct
+ * @str: the string alias
+ *
+ * Return: Always 0 on success, 1 on error
  */
-int is_white_space(const char *prompt)
+int make_user(num_t *num, char *str)
 {
-	while (*prompt)
+	char *p;
+
+	p = _strchr(str, '=');
+	if (!p)
+		return (1);
+	if (!*++p)
+		return (undo_user(num, str));
+
+	undo_user(num, str);
+	return (input_limit(&(num->alias), str, 0) == NULL);
+}
+
+/**
+ * print_alias - prints an alias string
+ * @node: the alias node
+ *
+ * Return: Always 0 on success, 1 on error
+ */
+int print_alias(list_t *node)
+{
+	char *p = NULL, *a = NULL;
+
+	if (node)
 	{
-		if (!isspace(*prompt))
-			return (0);
-		prompt++;
+		p = _strchr(node->str, '=');
+		for (a = node->str; a <= p; a++)
+		_putchar(*a);
+		_putchar('\'');
+		_puts(p + 1);
+		_puts("'\n");
+		return (0);
 	}
 	return (1);
 }
+
+/**
+ * set_user - mimics the alias builtin (man alias)
+ * @num: Structure containing potential arguments. Used to maintain
+ *          constant function prototype.
+ *  Return: Always 0
+ */
+int set_user(num_t *num)
+{
+	int i = 0;
+	char *p = NULL;
+	list_t *node = NULL;
+
+	if (num->argc == 1)
+	{
+		node = num->alias;
+		while (node)
+		{
+			print_alias(node);
+			node = node->next;
+		}
+		return (0);
+	}
+	for (i = 1; num->argv[i]; i++)
+	{
+		p = _strchr(num->argv[i], '=');
+		if (p)
+			make_user(num, num->argv[i]);
+		else
+			print_alias(node_sw(num->alias, num->argv[i], '='));
+	}
+
+	return (0);
+}
+
